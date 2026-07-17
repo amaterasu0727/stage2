@@ -94,30 +94,6 @@ model PointFocal {
   @@map("points_focaux")
 }
 
-model Agent {
-  matricule Int     @id
-  nom       String
-  prenom    String
-  sexe      Sexe
-  numero    String
-  email     String  @unique
-  actif     Boolean @default(true)
-  role      String?
-
-  structureId Int
-  structure   Structure @relation(fields: [structureId], references: [id])
-
-  utilisateur Utilisateur?
-  tickets     Ticket[]
-
-  createdAt DateTime @default(now())
-  createdBy String?
-  updatedAt DateTime @updatedAt
-  updatedBy String?
-
-  @@map("agents")
-}
-
 model Utilisateur {
   id           Int      @id @default(autoincrement())
   username     String   @unique
@@ -128,8 +104,6 @@ model Utilisateur {
 
   agentMatricule Int   @unique
   agent          Agent @relation(fields: [agentMatricule], references: [matricule])
-
-  sessionTokens SessionToken[]
 
   createdAt DateTime @default(now())
   createdBy String?
@@ -203,8 +177,8 @@ model Ticket {
   agentMatricule Int
   agent          Agent @relation(fields: [agentMatricule], references: [matricule])
 
-  categorieId Int
-  categorie   Categorie @relation(fields: [categorieId], references: [id])
+  categorieId Int?
+  categorie   Categorie? @relation(fields: [categorieId], references: [id])
 
   affectations Affectation[]
 
@@ -248,12 +222,37 @@ model Affectation {
 model SessionToken {
   id             Int      @id @default(autoincrement())
   jti            String   @unique
+  typeCompte     String
+  compteId       Int
   dateCreation   DateTime @default(now())
   dateExpiration DateTime
   revoque        Boolean  @default(false)
 
-  utilisateurId Int
-  utilisateur   Utilisateur @relation(fields: [utilisateurId], references: [id])
-
   @@map("session_tokens")
+}
+model Agent {
+  matricule Int     @id
+  nom       String
+  prenom    String
+  sexe      Sexe
+  numero    String
+  email     String  @unique
+  actif     Boolean @default(true)
+  role      String?
+
+  codeVerification           String?
+  codeVerificationExpiration DateTime?
+
+  structureId Int
+  structure   Structure @relation(fields: [structureId], references: [id])
+
+  utilisateur Utilisateur?
+  tickets     Ticket[]
+
+  createdAt DateTime @default(now())
+  createdBy String?
+  updatedAt DateTime @updatedAt
+  updatedBy String?
+
+  @@map("agents")
 }
