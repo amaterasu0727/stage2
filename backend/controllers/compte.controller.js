@@ -145,4 +145,103 @@ async function listerPointsFocaux(req, res) {
   return res.status(200).json({ success: true, data: sansMotDePasse });
 }
 
-module.exports = { creerResponsable, creerTechnicien, creerPointFocal, listerResponsables, listerTechniciens, listerPointsFocaux };
+async function desactiverResponsable(req, res) {
+  const responsable = await prisma.responsableEquipeTechnique.findUnique({ where: { id: Number(req.params.id) } });
+
+  if (!responsable) {
+    return res.status(404).json({ success: false, message: 'Responsable introuvable.', errors: [] });
+  }
+
+  const technicienJumeau = await prisma.technicien.findFirst({ where: { username: `${responsable.username}.technicien` } });
+
+  await prisma.$transaction(async (tx) => {
+    await tx.responsableEquipeTechnique.update({ where: { id: responsable.id }, data: { actif: false } });
+    if (technicienJumeau) {
+      await tx.technicien.update({ where: { id: technicienJumeau.id }, data: { actif: false } });
+    }
+  });
+
+  return res.status(200).json({ success: true, message: 'Responsable désactivé.' });
+}
+
+async function reactiverResponsable(req, res) {
+  const responsable = await prisma.responsableEquipeTechnique.findUnique({ where: { id: Number(req.params.id) } });
+
+  if (!responsable) {
+    return res.status(404).json({ success: false, message: 'Responsable introuvable.', errors: [] });
+  }
+
+  const technicienJumeau = await prisma.technicien.findFirst({ where: { username: `${responsable.username}.technicien` } });
+
+  await prisma.$transaction(async (tx) => {
+    await tx.responsableEquipeTechnique.update({ where: { id: responsable.id }, data: { actif: true } });
+    if (technicienJumeau) {
+      await tx.technicien.update({ where: { id: technicienJumeau.id }, data: { actif: true } });
+    }
+  });
+
+  return res.status(200).json({ success: true, message: 'Responsable réactivé.' });
+}
+
+async function desactiverTechnicien(req, res) {
+  const technicien = await prisma.technicien.findUnique({ where: { id: Number(req.params.id) } });
+
+  if (!technicien) {
+    return res.status(404).json({ success: false, message: 'Technicien introuvable.', errors: [] });
+  }
+
+  await prisma.technicien.update({ where: { id: technicien.id }, data: { actif: false } });
+
+  return res.status(200).json({ success: true, message: 'Technicien désactivé.' });
+}
+
+async function reactiverTechnicien(req, res) {
+  const technicien = await prisma.technicien.findUnique({ where: { id: Number(req.params.id) } });
+
+  if (!technicien) {
+    return res.status(404).json({ success: false, message: 'Technicien introuvable.', errors: [] });
+  }
+
+  await prisma.technicien.update({ where: { id: technicien.id }, data: { actif: true } });
+
+  return res.status(200).json({ success: true, message: 'Technicien réactivé.' });
+}
+
+async function desactiverPointFocal(req, res) {
+  const pointFocal = await prisma.pointFocal.findUnique({ where: { id: Number(req.params.id) } });
+
+  if (!pointFocal) {
+    return res.status(404).json({ success: false, message: 'Point focal introuvable.', errors: [] });
+  }
+
+  await prisma.pointFocal.update({ where: { id: pointFocal.id }, data: { actif: false } });
+
+  return res.status(200).json({ success: true, message: 'Point focal désactivé.' });
+}
+
+async function reactiverPointFocal(req, res) {
+  const pointFocal = await prisma.pointFocal.findUnique({ where: { id: Number(req.params.id) } });
+
+  if (!pointFocal) {
+    return res.status(404).json({ success: false, message: 'Point focal introuvable.', errors: [] });
+  }
+
+  await prisma.pointFocal.update({ where: { id: pointFocal.id }, data: { actif: true } });
+
+  return res.status(200).json({ success: true, message: 'Point focal réactivé.' });
+}
+
+module.exports = {
+  creerResponsable,
+  creerTechnicien,
+  creerPointFocal,
+  listerResponsables,
+  listerTechniciens,
+  listerPointsFocaux,
+  desactiverResponsable,
+  reactiverResponsable,
+  desactiverTechnicien,
+  reactiverTechnicien,
+  desactiverPointFocal,
+  reactiverPointFocal,
+};

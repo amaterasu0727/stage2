@@ -25,5 +25,8 @@ async function envoyerCodeInscription(destinataire, nomComplet, code) {
     console.error('Erreur envoi code inscription :', erreur.message);
   }
 }
+async function envoyerEmailRelance(destinataireUsername, referenceTicket, role) {
+  console.log(`[RELANCE] ${role} (${destinataireUsername}) — ticket ${referenceTicket} en retard`);
+}
 
 module.exports = { envoyerCodeInscription };

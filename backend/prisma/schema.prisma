@@ -181,7 +181,8 @@ model Ticket {
   categorie   Categorie? @relation(fields: [categorieId], references: [id])
 
   affectations Affectation[]
-
+  notifications Notification[]
+  
   @@map("tickets")
 }
 
@@ -255,4 +256,18 @@ model Agent {
   updatedBy String?
 
   @@map("agents")
+}
+model Notification {
+  id                     Int      @id @default(autoincrement())
+  destinataireTypeCompte String
+  destinataireId         Int
+  titre                  String
+  message                String   @db.Text
+  lu                     Boolean  @default(false)
+  dateEnvoi              DateTime @default(now())
+
+  ticketId Int?
+  ticket   Ticket? @relation(fields: [ticketId], references: [id])
+
+  @@map("notifications")
 }

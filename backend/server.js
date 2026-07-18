@@ -21,10 +21,12 @@ const structureRoutes = require('./routes/structure.routes');
 const typeRoutes = require('./routes/type.routes');
 const niveauRoutes = require('./routes/niveau.routes');
 const compteRoutes = require('./routes/compte.routes');
+const categorieRoutes = require('./routes/categorie.routes');
 
 app.use('/api/structures', structureRoutes);
 app.use('/api/types', typeRoutes);
 app.use('/api/niveaux', niveauRoutes);
+app.use('/api/categories', categorieRoutes);
 app.use('/api', compteRoutes);
 
 const ticketRoutes = require('./routes/ticket.routes');
@@ -32,6 +34,12 @@ const affectationRoutes = require('./routes/affectation.routes');
 
 app.use('/api/tickets', ticketRoutes);
 app.use('/api/affectations', affectationRoutes);
+
+const notificationRoutes = require('./routes/notification.routes');
+app.use('/api/notifications', notificationRoutes);
+
+const dashboardRoutes = require('./routes/dashboard.routes');
+app.use('/api/dashboard', dashboardRoutes);
 
 app.use(gestionnaireNotFound);
 app.use(gestionnaireErreurs);
