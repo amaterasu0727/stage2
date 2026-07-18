@@ -67,7 +67,10 @@ async function lister(req, res) {
   if (req.compte.typeCompte === 'UTILISATEUR') {
     filtres.agentMatricule = req.compte.agentMatricule;
   } else if (req.compte.typeCompte === 'RESPONSABLE') {
-    filtres.agent = { structureId: req.compte.structureId };
+  filtres.OR = [
+    { affectations: { none: {} }, agent: { structureId: req.compte.structureId } },
+    { affectations: { some: { affectationSuivante: null, technicien: { responsableId: req.compte.id } } } },
+  ];
   } else if (req.compte.typeCompte === 'TECHNICIEN') {
     filtres.affectations = { some: { technicienId: req.compte.id, transferer: false, escalade: false } };
   }

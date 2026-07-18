@@ -22,4 +22,5 @@ routeur.get('/', controleur.lister);
 routeur.get('/:id', controleur.obtenir);
 routeur.post('/:id/affecter', autoriser('RESPONSABLE'), affectationControleur.affecter);
 routeur.patch('/:id/categorie', autoriser('RESPONSABLE'), controleur.classer);
+routeur.post('/:id/escalader', autoriser('RESPONSABLE'), affectationControleur.escaladerDepuisTicket);
 module.exports = routeur;
