@@ -53,11 +53,12 @@ model Type {
 }
 
 model Structure {
-  id           Int     @id @default(autoincrement())
-  nomstructure String
-  nomrespo     String?
-  mailrespo    String?
-  numrespo     String?
+  id                 Int     @id @default(autoincrement())
+  nomstructure       String
+  nomResponsable     String?
+  prenomResponsable  String?
+  mailResponsable    String?
+  numResponsable     String?
 
   typeId Int
   type   Type @relation(fields: [typeId], references: [id])
@@ -182,7 +183,7 @@ model Ticket {
 
   affectations Affectation[]
   notifications Notification[]
-  
+
   @@map("tickets")
 }
 

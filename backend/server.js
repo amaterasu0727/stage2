@@ -44,6 +44,8 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use(gestionnaireNotFound);
 app.use(gestionnaireErreurs);
 
+const { demarrerTacheRelance } = require('./jobs/relance');
+demarrerTacheRelance();
 app.listen(PORT, () => {
   console.log('=== SERVEUR DEMARRE ===');
   console.log(`URL : http://localhost:${PORT}`);

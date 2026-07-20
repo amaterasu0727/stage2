@@ -9,21 +9,29 @@ async function lister(req, res) {
 }
 
 async function creer(req, res) {
-  const { nomstructure, typeId, niveauId, nomrespo, mailrespo, numrespo } = req.body;
+  const { nomstructure, typeId, niveauId, nomResponsable, prenomResponsable, mailResponsable, numResponsable } = req.body;
 
   if (!nomstructure || !typeId || !niveauId) {
     return res.status(400).json({ success: false, message: 'Champs obligatoires manquants.', errors: [] });
   }
 
   const structure = await prisma.structure.create({
-    data: { nomstructure, typeId: Number(typeId), niveauId: Number(niveauId), nomrespo, mailrespo, numrespo },
+    data: {
+      nomstructure,
+      typeId: Number(typeId),
+      niveauId: Number(niveauId),
+      nomResponsable,
+      prenomResponsable,
+      mailResponsable,
+      numResponsable,
+    },
   });
 
   return res.status(201).json({ success: true, message: 'Structure créée.', data: structure });
 }
 
 async function modifier(req, res) {
-  const { nomstructure, typeId, niveauId, nomrespo, mailrespo, numrespo } = req.body;
+  const { nomstructure, typeId, niveauId, nomResponsable, prenomResponsable, mailResponsable, numResponsable } = req.body;
 
   const structure = await prisma.structure.update({
     where: { id: Number(req.params.id) },
@@ -31,9 +39,10 @@ async function modifier(req, res) {
       nomstructure,
       typeId: typeId ? Number(typeId) : undefined,
       niveauId: niveauId ? Number(niveauId) : undefined,
-      nomrespo,
-      mailrespo,
-      numrespo,
+      nomResponsable,
+      prenomResponsable,
+      mailResponsable,
+      numResponsable,
     },
   });
 

@@ -5,70 +5,130 @@ const { PrismaMariaDb } = require('@prisma/adapter-mariadb');
 const adapter = new PrismaMariaDb(process.env.DATABASE_URL);
 const prisma = new PrismaClient({ adapter });
 
+const niveauxMetier = [
+  { libelle: 'Central (National)', ordre: 1 },
+  { libelle: 'Intermédiaire (Départemental)', ordre: 2 },
+  { libelle: 'Périphérique (Local)', ordre: 3 },
+];
+
+const typesMetier = [
+  'Administratif / Technique',
+  'Administratif / Décisionnel',
+  'Administratif / Gestion',
+  'Technique / Régulation',
+  'Établissement Public / Soutien',
+  'Contrôle / Régulation',
+  'Technique / Soutien',
+  'Soins (Dernier Recours)',
+  'Soins (2ème Recours)',
+  'Soins (1er Recours)',
+  'Soins de Base',
+];
+
+const structuresMetier = [
+  { nomstructure: 'DSI (Direction des Systèmes d\'Information)', type: 'Administratif / Technique', niveau: 'Central (National)' },
+  { nomstructure: 'CAB-MIN (Cabinet du Ministre)', type: 'Administratif / Décisionnel', niveau: 'Central (National)' },
+  { nomstructure: 'SGM (Secrétariat Général du Ministère)', type: 'Administratif / Gestion', niveau: 'Central (National)' },
+  { nomstructure: 'DPAF (Direction de la Planification, de l\'Administration et des Finances)', type: 'Administratif / Gestion', niveau: 'Central (National)' },
+  { nomstructure: 'DRH (Direction des Ressources Humaines)', type: 'Administratif / Gestion', niveau: 'Central (National)' },
+  { nomstructure: 'DNSP (Direction Nationale de la Santé Publique)', type: 'Technique / Régulation', niveau: 'Central (National)' },
+  { nomstructure: 'ANSSP (Agence Nationale des Soins de Santé Primaires)', type: 'Établissement Public / Soutien', niveau: 'Central (National)' },
+  { nomstructure: 'ABRP (Agence Beninoise de Régulation Pharmaceutique)', type: 'Contrôle / Régulation', niveau: 'Central (National)' },
+  { nomstructure: 'ANTS (Agence Nationale pour la Transfusion Sanguine)', type: 'Technique / Soutien', niveau: 'Central (National)' },
+  { nomstructure: 'CNHU-HKM (Centre Hospitalier Universitaire National)', type: 'Soins (Dernier Recours)', niveau: 'Central (National)' },
+  { nomstructure: 'DDS (Direction Départementale de la Santé)', type: 'Administratif / Gestion', niveau: 'Intermédiaire (Départemental)' },
+  { nomstructure: 'CHD (Centre Hospitalier Départemental)', type: 'Soins (2ème Recours)', niveau: 'Intermédiaire (Départemental)' },
+  { nomstructure: 'BZS (Bureau de Zone Sanitaire)', type: 'Administratif / Gestion', niveau: 'Périphérique (Local)' },
+  { nomstructure: 'HZ (Hôpital de Zone)', type: 'Soins (1er Recours)', niveau: 'Périphérique (Local)' },
+  { nomstructure: 'CSC (Centre de Santé de Commune)', type: 'Soins de Base', niveau: 'Périphérique (Local)' },
+  { nomstructure: 'CSA (Centre de Santé d\'Arrondissement)', type: 'Soins de Base', niveau: 'Périphérique (Local)' },
+  { nomstructure: 'DISP (Dispensaire isolé / Unité locale)', type: 'Soins de Base', niveau: 'Périphérique (Local)' },
+];
+
+async function ensureUniqueType(libelle) {
+  const existing = await prisma.type.findUnique({ where: { libelle } });
+  if (existing) {
+    return existing;
+  }
+
+  return prisma.type.create({ data: { libelle } });
+}
+
+async function ensureUniqueNiveau({ libelle, ordre }) {
+  const existing = await prisma.niveau.findUnique({ where: { libelle } });
+  if (existing) {
+    if (existing.ordre !== ordre) {
+      return prisma.niveau.update({
+        where: { id: existing.id },
+        data: { ordre },
+      });
+    }
+    return existing;
+  }
+
+  return prisma.niveau.create({ data: { libelle, ordre } });
+}
+
+async function ensureStructure({ nomstructure, typeLibelle, niveauLibelle }) {
+  const existing = await prisma.structure.findFirst({ where: { nomstructure } });
+  const type = await ensureUniqueType(typeLibelle);
+  const niveau = await ensureUniqueNiveau(
+    niveauxMetier.find((item) => item.libelle === niveauLibelle)
+  );
+
+  if (existing) {
+    return prisma.structure.update({
+      where: { id: existing.id },
+      data: {
+        typeId: type.id,
+        niveauId: niveau.id,
+        nomResponsable: existing.nomResponsable,
+        prenomResponsable: existing.prenomResponsable,
+        mailResponsable: existing.mailResponsable,
+        numResponsable: existing.numResponsable,
+      },
+    });
+  }
+
+  return prisma.structure.create({
+    data: {
+      nomstructure,
+      typeId: type.id,
+      niveauId: niveau.id,
+    },
+  });
+}
+
 async function main() {
   const motDePasseHache = await bcrypt.hash('Passer123!', 10);
 
-  const niveauNational = await prisma.niveau.upsert({
-    where: { libelle: 'National' },
-    update: {},
-    create: { libelle: 'National', ordre: 1 },
-  });
+  await prisma.affectation.deleteMany({});
+  await prisma.notification.deleteMany({});
+  await prisma.ticket.deleteMany({});
+  await prisma.technicien.deleteMany({});
+  await prisma.responsableEquipeTechnique.deleteMany({});
+  await prisma.pointFocal.deleteMany({});
+  await prisma.utilisateur.deleteMany({});
+  await prisma.agent.deleteMany({});
+  await prisma.structure.deleteMany({});
+  await prisma.type.deleteMany({});
+  await prisma.niveau.deleteMany({});
 
-  const niveauDepartemental = await prisma.niveau.upsert({
-    where: { libelle: 'Departemental' },
-    update: {},
-    create: { libelle: 'Departemental', ordre: 2 },
-  });
+  for (const niveau of niveauxMetier) {
+    await ensureUniqueNiveau(niveau);
+  }
 
-  await prisma.niveau.upsert({
-    where: { libelle: 'Sanitaire' },
-    update: {},
-    create: { libelle: 'Sanitaire', ordre: 3 },
-  });
+  for (const typeLibelle of typesMetier) {
+    await ensureUniqueType(typeLibelle);
+  }
 
-  await prisma.niveau.upsert({
-    where: { libelle: 'Formation sanitaire' },
-    update: {},
-    create: { libelle: 'Formation sanitaire', ordre: 4 },
-  });
-
-  const typeDirectionCentrale = await prisma.type.upsert({
-    where: { libelle: 'Direction centrale' },
-    update: {},
-    create: { libelle: 'Direction centrale' },
-  });
-
-  const typeDDS = await prisma.type.upsert({
-    where: { libelle: 'Direction Departementale de la Sante' },
-    update: {},
-    create: { libelle: 'Direction Departementale de la Sante' },
-  });
-
-  await prisma.type.upsert({
-    where: { libelle: 'Agence' },
-    update: {},
-    create: { libelle: 'Agence' },
-  });
-
-  const structureNationale = await prisma.structure.upsert({
-    where: { id: 1 },
-    update: {},
-    create: {
-      nomstructure: 'Direction Nationale de la Sante Publique',
-      typeId: typeDirectionCentrale.id,
-      niveauId: niveauNational.id,
-    },
-  });
-
-  const structureDepartementale = await prisma.structure.upsert({
-    where: { id: 2 },
-    update: {},
-    create: {
-      nomstructure: 'DDS Atlantique-Littoral',
-      typeId: typeDDS.id,
-      niveauId: niveauDepartemental.id,
-    },
-  });
+  for (const structure of structuresMetier) {
+    await ensureStructure({
+      nomstructure: structure.nomstructure,
+      typeLibelle: structure.type,
+      niveauLibelle: structure.niveau,
+    });
+  }
 
   await prisma.admin.upsert({
     where: { username: 'admin' },
@@ -76,102 +136,9 @@ async function main() {
     create: { username: 'admin', motdepasse: motDePasseHache },
   });
 
-  const pointFocal = await prisma.pointFocal.upsert({
-    where: { structureId: structureDepartementale.id },
-    update: {},
-    create: {
-      nom: 'Pointfocal',
-      prenom: 'Test',
-      username: 'pointfocal.test',
-      motdepasse: motDePasseHache,
-      telephone: '0100000001',
-      structureId: structureDepartementale.id,
-    },
-  });
-
-  const agent = await prisma.agent.upsert({
-    where: { matricule: 100001 },
-    update: {},
-    create: {
-      matricule: 100001,
-      nom: 'Agent',
-      prenom: 'Test',
-      sexe: 'M',
-      numero: '0100000002',
-      email: 'agent.test@ministere.bj',
-      structureId: structureDepartementale.id,
-    },
-  });
-
-  await prisma.utilisateur.upsert({
-    where: { agentMatricule: agent.matricule },
-    update: {},
-    create: {
-      username: 'agent.test',
-      motdepasse: motDePasseHache,
-      telephone: agent.numero,
-      agentMatricule: agent.matricule,
-    },
-  });
-
-  const responsable = await prisma.responsableEquipeTechnique.upsert({
-    where: { structureId: structureDepartementale.id },
-    update: {},
-    create: {
-      username: 'responsable.test',
-      motdepasse: motDePasseHache,
-      telephone: '0100000003',
-      structureId: structureDepartementale.id,
-    },
-  });
-
-  await prisma.technicien.upsert({
-    where: { username: 'responsable.test.technicien' },
-    update: {},
-    create: {
-      username: 'responsable.test.technicien',
-      motdepasse: motDePasseHache,
-      telephone: '0100000003',
-      responsableId: responsable.id,
-    },
-  });
-
-  await prisma.technicien.upsert({
-    where: { username: 'technicien.test' },
-    update: {},
-    create: {
-      username: 'technicien.test',
-      motdepasse: motDePasseHache,
-      telephone: '0100000004',
-      responsableId: responsable.id,
-    },
-  });
-
-  const responsableNational = await prisma.responsableEquipeTechnique.upsert({
-    where: { structureId: structureNationale.id },
-    update: {},
-    create: {
-      username: 'responsable.national',
-      motdepasse: motDePasseHache,
-      telephone: '0100000005',
-      structureId: structureNationale.id,
-    },
-  });
-
-  await prisma.technicien.upsert({
-    where: { username: 'responsable.national.technicien' },
-    update: {},
-    create: {
-      username: 'responsable.national.technicien',
-      motdepasse: motDePasseHache,
-      telephone: '0100000005',
-      responsableId: responsableNational.id,
-    },
-  });
-
   await prisma.categorie.upsert({
     where: { nom: 'Materiel' },
-    update: {}, 
+    update: {},
     create: { nom: 'Materiel', description: 'Problemes materiels' },
   });
 
@@ -181,8 +148,8 @@ async function main() {
     create: { nom: 'Reseau', description: 'Problemes de connexion et reseau' },
   });
 
-  console.log('Seed termine. Mot de passe pour tous les comptes : Passer123!');
-  console.log('Comptes crees : admin / pointfocal.test / agent.test / responsable.test / responsable.test.technicien / technicien.test / responsable.national / responsable.national.technicien');
+  console.log('Seed termine. Données de références mises à jour avec la hiérarchie métier officielle.');
+  console.log('Compte admin conservé : admin');
 }
 
 main()
